@@ -8,10 +8,9 @@
 ### AIM: 
 
 
+Build a ColumnTransformer pipeline to preprocess numeric and categorical features safely.
 
 
-
-Reduce 4D Iris data to 2 principal components and visualize species separation.
 
 
 
@@ -26,8 +25,7 @@ Reduce 4D Iris data to 2 principal components and visualize species separation.
 
 
 
-PCA via SVD: compute components that capture maximal variance.
-
+Apply median imputation & standard scaling to numeric features; one-hot encode categorical features — all inside a pipeline to avoid leakage.
 
 
 
@@ -44,7 +42,7 @@ PCA via SVD: compute components that capture maximal variance.
 
 
 
-PCA finds orthogonal directions of maximal variance (eigenvectors of covariance matrix).
+Pipelines ensure transformations are fit on training data only; critical for valid evaluation
 
 
 
@@ -56,33 +54,43 @@ PCA finds orthogonal directions of maximal variance (eigenvectors of covariance 
 
 
 ```
-# EXPERIMENT 6
-from sklearn.decomposition import PCA
-from sklearn.datasets import load_iris
-import matplotlib.pyplot as plt
-import numpy as np
-iris = load_iris()
-X = iris.data; y = iris.target
-pca = PCA(n_components=2)
-Z = pca.fit_transform(X)
-print('Explained variance ratio:',
-      np.round(pca.explained_variance_ratio_,4))
-plt.scatter(Z[:,0], Z[:,1], c=y, cmap='viridis'); plt.xlabel('PC1');
-plt.ylabel('PC2'); plt.title('PCA of Iris'); plt.show()
+# Experiment 7
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+df = pd.DataFrame({'age':[25,35,
+None, 45],'income':[50,40,30,60],'city':['X','Y','X','Z'],'target':[0,1,0,1]})
+X = df[['age','income','city']]; y = df['target']
+numeric_features = ['age','income']
+numeric_transformer = Pipeline([('imputer',
+SimpleImputer(strategy='median')), ('scalar', StandardScaler())])
+cat_features = ['city']; cat_transformer = Pipeline([('onehot', OneHotEncoder(handle_unknown='ignore'))])
+preprocessor = ColumnTransformer([('num', numeric_transformer,
+numeric_features), ('cat', cat_transformer, cat_features)])
+clf = Pipeline([('pre', preprocessor), ('rf', RandomForestClassifier(random_state=42))])
+clf.fit(X,y)
+print('Preprocessor output shape:',
+preprocessor.transform(X).shape)
+print('Pipeline trainded successfully.')
+
 
 
 ```
 
 
 
-
-
 ## OUTPUT:
 
 
-<img width="578" height="455" alt="image" src="https://github.com/user-attachments/assets/ca7e8b66-1413-4f00-a399-b92794c78ece" />
+```
+Preprocessor output shape: (4, 5)
+Pipeline trainded successfully.
 
 
+```
 
 ### RESULT: 
 
@@ -91,5 +99,4 @@ plt.ylabel('PC2'); plt.title('PCA of Iris'); plt.show()
 
 
 
-Students see PC1 captures most variance; PCA useful for visualization and 
-dimensionality reduction.
+Students learn to encapsulate preprocessing to avoid leakage and ensure correct application during training and prediction.
